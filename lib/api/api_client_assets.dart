@@ -21,7 +21,15 @@ extension ApiClientAssetsX on ApiClient {
     var fatal = false;
     try {
       final path = '/stats/${Uri.encodeComponent(scriptName)}/assets/refresh';
-      final res = await request(() => post(path));
+      // Web 端 XHR 的总超时 = connectTimeout + receiveTimeout；默认 connect
+      // 只有 3s，读取资产要 10-15s，不单独放宽会被浏览器提前 abort。
+      final res = await request(() => post(
+            path,
+            options: Options(
+              connectTimeout: const Duration(seconds: 5),
+              receiveTimeout: const Duration(seconds: 120),
+            ),
+          ));
       if (res.isSuccess && res.data is Map) {
         return ScriptAssetStats.fromJson(Map<String, dynamic>.from(res.data));
       }
