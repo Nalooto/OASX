@@ -175,6 +175,12 @@ class I18n {
   static const String homeStatsTab = 'home_stats_tab',
       homeStatsGeneratedAt = 'home_stats_generated_at',
       homeStatsRetentionDays = 'home_stats_retention_days';
+  static const String homeAssetsTab = 'home_assets_tab',
+      homeAssetsRefresh = 'home_assets_refresh',
+      homeAssetsEmpty = 'home_assets_empty',
+      homeAssetsLoadFailed = 'home_assets_load_failed',
+      homeAssetsRefreshFailed = 'home_assets_refresh_failed',
+      homeAssetsUpdatedAt = 'home_assets_updated_at';
   static const String homeStatsToday = 'home_stats_today',
       homeStatsSelectedDate = 'home_stats_selected_date',
       homeStatsTasks = 'home_stats_tasks',
