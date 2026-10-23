@@ -73,6 +73,59 @@ class ScriptAssetDay {
   final Map<String, int> items;
 }
 
+/// Two dated snapshots used to compare assets over a span of days.
+class ScriptAssetComparison {
+  /// Creates a comparison between two snapshots.
+  const ScriptAssetComparison({this.start, this.end});
+
+  /// Baseline snapshot; null when no history exists.
+  final ScriptAssetDay? start;
+
+  /// Snapshot the range ends on; null when no history exists.
+  final ScriptAssetDay? end;
+
+  /// Whether the range covers two different days, i.e. is comparable.
+  bool get canCompare =>
+      start != null && end != null && start!.date != end!.date;
+
+  /// Number of days between the two snapshots.
+  int get spanDays {
+    final startDate = DateTime.tryParse(start?.date ?? '');
+    final endDate = DateTime.tryParse(end?.date ?? '');
+    if (startDate == null || endDate == null) {
+      return 0;
+    }
+    final diff = endDate.difference(startDate).inDays;
+    return diff < 0 ? 0 : diff;
+  }
+
+  /// Value of [key] at the start of the range.
+  int? startValue(String key) => start?.items[key];
+
+  /// Value of [key] at the end of the range.
+  int? endValue(String key) => end?.items[key];
+
+  /// Change of [key] across the range, null when either side is missing.
+  int? delta(String key) {
+    final from = startValue(key);
+    final to = endValue(key);
+    if (from == null || to == null) {
+      return null;
+    }
+    return to - from;
+  }
+
+  /// Relative change of [key] (0.12 = +12%), null when unusable.
+  double? ratio(String key) {
+    final from = startValue(key);
+    final change = delta(key);
+    if (from == null || change == null || from <= 0) {
+      return null;
+    }
+    return change / from;
+  }
+}
+
 /// Latest asset snapshot for one script.
 class ScriptAssetStats {
   /// Creates an asset snapshot.
@@ -143,6 +196,51 @@ class ScriptAssetStats {
 
   /// Account nickname when present.
   String get accountName => (account['name'] ?? '').toString();
+
+  /// Returns the snapshot recorded exactly on [date], when present.
+  ScriptAssetDay? dayOf(String? date) {
+    if (date == null || date.isEmpty) {
+      return null;
+    }
+    for (final day in days) {
+      if (day.date == date) {
+        return day;
+      }
+    }
+    return null;
+  }
+
+  /// Compares [startDate] against [endDate].
+  ///
+  /// Unknown or inverted dates are clamped to the available history so the
+  /// caller never has to render an empty range.
+  ScriptAssetComparison compare(String? startDate, String? endDate) {
+    if (days.isEmpty) {
+      return const ScriptAssetComparison();
+    }
+    final end = dayOf(endDate) ?? days.last;
+    var start = dayOf(startDate) ?? days.first;
+    if (start.date.compareTo(end.date) > 0) {
+      final index = days.indexOf(end);
+      start = index > 0 ? days[index - 1] : end;
+    }
+    return ScriptAssetComparison(start: start, end: end);
+  }
+
+  /// Values of [key] for every stored day, forward-filled across days where
+  /// the asset was not recorded yet (assets persist once obtained).
+  List<int?> seriesFor(String key) {
+    final series = <int?>[];
+    int? last;
+    for (final day in days) {
+      final value = day.items[key];
+      if (value != null) {
+        last = value;
+      }
+      series.add(last);
+    }
+    return series;
+  }
 }
 
 int _readInt(dynamic value) {
