@@ -10,6 +10,7 @@ part 'log_center_error_view.dart';
 part 'log_center_error_detail_view.dart';
 part 'log_center_error_log_section.dart';
 part 'log_center_error_image_card.dart';
+part 'log_center_error_image_preview.dart';
 part 'log_center_info_view.dart';
 part 'log_center_log_text.dart';
 part 'log_center_log_text_span_builder.dart';
@@ -152,6 +153,10 @@ class _LogCenterPanelState extends State<LogCenterPanel> {
     };
     controller.resetErrorDetailViewport = () {
       _resetErrorDetailViewport(this);
+    };
+    controller.isErrorListAtTop = () {
+      final scroll = _errorListScrollController;
+      return scroll == null || !scroll.hasClients || scroll.offset <= 4;
     };
     previousScrollController?.dispose();
     _activateLogCenterControllerAfterFrame(this, controller);

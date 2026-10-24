@@ -68,11 +68,11 @@ class LogCenterErrorView extends StatelessWidget {
                     dense: true,
                     selected: selected,
                     title: Text(
-                      item.timestampMs.toString(),
+                      _formatErrorTime(item),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     subtitle: Text(
-                      '${_formatErrorTime(item)} · ${item.imageCount} ${I18n.homeLogImages.tr}',
+                      '${item.imageCount} ${I18n.homeLogImages.tr}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     onTap: () => controller.selectError(item.id),

@@ -1,6 +1,6 @@
 part of 'log_center_panel.dart';
 
-/// Error detail image preview with an action-aware download button.
+/// Error detail image preview with a zoomable preview and download action.
 class LogCenterErrorImageCard extends StatelessWidget {
   /// Creates one error image card.
   const LogCenterErrorImageCard({
@@ -26,29 +26,44 @@ class LogCenterErrorImageCard extends StatelessWidget {
       width: 140,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [_buildPreview(url), _buildDownloadButton()],
+        children: [_buildPreview(context, url), _buildDownloadButton()],
       ),
     );
   }
 
-  /// Builds the async network image preview.
-  Widget _buildPreview(String url) {
+  /// Builds the tappable image preview opening the zoomable viewer.
+  Widget _buildPreview(BuildContext context, String url) {
     return AspectRatio(
       aspectRatio: 4 / 3,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) {
-              return child;
-            }
-            return const Center(child: CircularProgressIndicator());
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(child: Icon(Icons.broken_image_outlined));
-          },
+      child: Tooltip(
+        message: I18n.homeLogOpenImage.tr,
+        waitDuration: const Duration(milliseconds: 500),
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => showLogCenterErrorImagePreview(
+              context,
+              controller: controller,
+              detail: detail,
+              imageName: image.name,
+            ),
+            child: Image.network(
+              url,
+              fit: BoxFit.cover,
+              cacheWidth: 420,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) {
+                  return child;
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(child: Icon(Icons.broken_image_outlined));
+              },
+            ),
+          ),
         ),
       ),
     );

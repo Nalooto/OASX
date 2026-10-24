@@ -8,14 +8,19 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:oasx/api/api_client.dart';
 import 'package:oasx/api/sse_client.dart';
+import 'package:oasx/modules/common/models/storage_key.dart';
 import 'package:oasx/modules/log/log_browser_models.dart';
+import 'package:oasx/modules/log/script_error_local_location.dart';
 import 'package:oasx/translation/i18n_content.dart';
 import 'package:oasx/utils/browser_download_io.dart'
     if (dart.library.html) 'package:oasx/utils/browser_download_web.dart';
 import 'package:oasx/utils/file_save_stub.dart'
     if (dart.library.io) 'package:oasx/utils/file_save_io.dart';
+import 'package:oasx/utils/local_folder_stub.dart'
+    if (dart.library.io) 'package:oasx/utils/local_folder_io.dart';
 
 part 'script_log_browser_actions.dart';
 part 'script_log_browser_error_detail_render.dart';
@@ -91,6 +96,9 @@ class ScriptLogBrowserController extends GetxController {
   /// Image download keys currently running.
   final downloadingImageKeys = <String>[].obs;
 
+  /// Whether the screenshot folder action is running.
+  final openingErrorImageFolder = false.obs;
+
   /// Whether the error detail page is visible.
   final errorDetailVisible = false.obs;
 
@@ -133,6 +141,9 @@ class ScriptLogBrowserController extends GetxController {
   /// Callback used by UI to reset the error detail viewport.
   VoidCallback? resetErrorDetailViewport;
 
+  /// Callback used by UI to report whether the error list sits at its top edge.
+  bool Function()? isErrorListAtTop;
+
   /// UI owner currently bound to viewport callbacks.
   Object? viewportOwner;
 
@@ -169,6 +180,9 @@ class ScriptLogBrowserController extends GetxController {
   /// Active error detail request id.
   int _errorDetailRequestId = 0;
 
+  /// Whether one silent error-list peek is already running.
+  bool _errorPeekRunning = false;
+
   /// Token used to cancel stale error detail render work.
   int _errorDetailRenderToken = 0;
 
@@ -190,6 +204,7 @@ class ScriptLogBrowserController extends GetxController {
     restoreScrollOffset = null;
     preserveViewportAfterPrepend = null;
     resetErrorDetailViewport = null;
+    isErrorListAtTop = null;
     stopErrorListAutoRefresh();
     unawaited(stopStream());
     super.onClose();

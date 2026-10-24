@@ -26,12 +26,30 @@ class LogCenterErrorDetailView extends StatelessWidget {
       if (detail == null) {
         return _buildLoading(context);
       }
-      return _buildDetailScrollView(
-        context,
-        detail,
-        title: _formatDetailTime(detail),
-      );
+      return _buildDetailView(context, detail);
     });
+  }
+
+  /// Builds the detail page with a pinned header and scrollable body.
+  Widget _buildDetailView(BuildContext context, ScriptErrorLogDetail detail) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeader(
+          context,
+          _formatDetailTime(detail),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (controller.canOpenErrorImageFolder) _buildOpenFolderButton(),
+              _buildScrollToBottomButton(),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(child: _buildLogBody(context)),
+      ],
+    );
   }
 
   /// Builds detail header while data is still loading.
@@ -68,6 +86,23 @@ class LogCenterErrorDetailView extends StatelessWidget {
     );
   }
 
+  /// Builds the action that reveals the screenshot folder of the error.
+  Widget _buildOpenFolderButton() {
+    return Obx(() {
+      final loading = controller.openingErrorImageFolder.value;
+      return IconButton(
+        tooltip: I18n.homeLogOpenImageFolder.tr,
+        onPressed: loading ? null : controller.openErrorImageFolder,
+        icon: loading
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.folder_open_rounded),
+      );
+    });
+  }
+
   /// Builds the action that scrolls the error detail view to the latest line.
   Widget _buildScrollToBottomButton() {
     return IconButton(
@@ -95,36 +130,6 @@ class LogCenterErrorDetailView extends StatelessWidget {
             image: detail.images[index],
           );
         },
-      ),
-    );
-  }
-
-  /// Builds the unified vertical scroll view for the whole detail page.
-  Widget _buildDetailScrollView(
-    BuildContext context,
-    ScriptErrorLogDetail detail, {
-    required String title,
-  }) {
-    return Scrollbar(
-      controller: detailScrollController,
-      interactive: true,
-      thumbVisibility: true,
-      child: CustomScrollView(
-        controller: detailScrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: _buildHeader(
-              context,
-              title,
-              trailing: _buildScrollToBottomButton(),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-          SliverToBoxAdapter(child: _buildImages(detail)),
-          if (detail.images.isNotEmpty)
-            const SliverToBoxAdapter(child: SizedBox(height: 6)),
-          ..._buildLogSlivers(context),
-        ],
       ),
     );
   }

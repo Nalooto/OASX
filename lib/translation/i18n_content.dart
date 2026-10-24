@@ -74,7 +74,10 @@ class I18n {
       deployFileExportSuccess = 'deploy_file_export_success',
       deployFileExportFailed = 'deploy_file_export_failed',
       rename = 'Rename';
-  static const String delete = 'Delete', cancel = 'Cancel', confirm = 'Confirm';
+  static const String delete = 'Delete',
+      cancel = 'Cancel',
+      confirm = 'Confirm',
+      close = 'Close';
   static const String retry = 'Retry',
       back = 'Back',
       selectAll = 'Select all',
@@ -277,6 +280,11 @@ class I18n {
       homeLogImageSaveSuccess = 'home_log_image_save_success',
       homeLogImageSaveFailed = 'home_log_image_save_failed',
       homeLogScrollToBottom = 'home_log_scroll_to_bottom';
+  static const String homeLogOpenImage = 'home_log_open_image',
+      homeLogOpenImageFolder = 'home_log_open_image_folder',
+      homeLogOpenImageFolderReady = 'home_log_open_image_folder_ready',
+      homeLogOpenImageFolderFailed = 'home_log_open_image_folder_failed',
+      homeLogImagePreparing = 'home_log_image_preparing';
   static const String taskManage = 'task_manage',
       taskManageTitle = 'task_manage_title',
       taskSearchHint = 'task_search_hint';

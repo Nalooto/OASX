@@ -1,121 +1,103 @@
 part of 'log_center_panel.dart';
 
 extension _LogCenterErrorDetailLogSectionX on LogCenterErrorDetailView {
-  /// Builds the log slivers with progressive state feedback.
-  List<Widget> _buildLogSlivers(BuildContext context) {
+  /// Builds the virtualized error log body with progressive state feedback.
+  Widget _buildLogBody(BuildContext context) {
     final lines = controller.selectedErrorLogLines;
-    final preparing = controller.errorLogPreparing.value;
-    if (lines.isEmpty) {
-      if (controller.errorMessage.value.isNotEmpty) {
-        return [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: Text(controller.errorMessage.value)),
-          ),
-        ];
-      }
-      if (preparing) {
-        return const [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ];
-      }
-      return const [SliverToBoxAdapter(child: SizedBox.shrink())];
+    final hasImages =
+        controller.selectedErrorDetail.value?.images.isNotEmpty ?? false;
+    if (lines.isEmpty && !hasImages) {
+      return _buildLogPlaceholder();
     }
-    final widgets = <Widget>[
-      if (preparing || controller.errorLogAppending.value)
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 6),
-            child: LinearProgressIndicator(minHeight: 2),
-          ),
-        ),
-    ];
-    if (controller.wrapLines.value) {
-      widgets.add(_buildWrappedLogSliver(context, lines));
-      return widgets;
-    }
-    widgets.add(_buildHorizontalLogSliver(context, lines));
-    return widgets;
-  }
-
-  /// Builds the wrapped vertical log sliver.
-  Widget _buildWrappedLogSliver(BuildContext context, List<String> lines) {
-    return SliverToBoxAdapter(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onLongPress: () => _openCopyDialog(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: lines.map((line) {
-            return Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: LogCenterLogText(
-                line: line,
-                maxLines: null,
-                overflow: TextOverflow.clip,
-                softWrap: true,
-              ),
-            );
-          }).toList(),
-        ),
-      ),
+    final wrapLines = controller.wrapLines.value;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (controller.errorLogPreparing.value ||
+            controller.errorLogAppending.value)
+          const LinearProgressIndicator(minHeight: 2),
+        Expanded(child: _buildScrollableLines(context, wrapLines)),
+      ],
     );
   }
 
-  /// Builds a selectable non-wrapped error log body.
-  Widget _buildSelectableHorizontalLogArea(
-    BuildContext context,
-    List<String> lines,
-    double width,
-  ) {
+  /// Builds the empty, loading or failed log placeholder.
+  Widget _buildLogPlaceholder() {
+    if (controller.errorMessage.value.isNotEmpty) {
+      return Center(child: Text(controller.errorMessage.value));
+    }
+    if (controller.errorLogPreparing.value) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// Builds the vertical line list, optionally widened for long lines.
+  Widget _buildScrollableLines(BuildContext context, bool wrapLines) {
+    final vertical = Scrollbar(
+      controller: detailScrollController,
+      interactive: true,
+      thumbVisibility: true,
+      notificationPredicate: (notification) {
+        return notification.metrics.axis == Axis.vertical;
+      },
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: ClipRect(child: _buildLineList(context, wrapLines: wrapLines)),
+      ),
+    );
+    if (wrapLines) {
+      return vertical;
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = _resolveContentWidth(
+          context,
+          constraints.maxWidth,
+          controller.selectedErrorLogMaxWidthScore.value,
+        );
+        return Scrollbar(
+          controller: detailHorizontalScrollController,
+          interactive: true,
+          thumbVisibility: width > constraints.maxWidth,
+          notificationPredicate: (notification) {
+            return notification.metrics.axis == Axis.horizontal;
+          },
+          child: SingleChildScrollView(
+            controller: detailHorizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(width: width, child: vertical),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Builds the virtualized screenshot strip and log line list.
+  Widget _buildLineList(BuildContext context, {required bool wrapLines}) {
+    final detail = controller.selectedErrorDetail.value;
+    final hasImages = detail != null && detail.images.isNotEmpty;
+    final imageOffset = hasImages ? 1 : 0;
+    final lines = controller.selectedErrorLogLines;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPress: () => _openCopyDialog(context),
-      child: SizedBox(
-        width: width,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: lines.map((line) {
+      child: ListView.builder(
+        controller: detailScrollController,
+        padding: const EdgeInsets.only(top: 6, right: 12),
+        itemCount: lines.length + imageOffset,
+        itemBuilder: (context, index) {
+          if (hasImages && index == 0) {
             return Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: LogCenterLogText(
-                line: line,
-                maxLines: 1,
-                overflow: TextOverflow.visible,
-                softWrap: false,
-              ),
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _buildImages(detail),
             );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  /// Builds the non-wrapped horizontal log area inside the vertical scroll flow.
-  Widget _buildHorizontalLogSliver(BuildContext context, List<String> lines) {
-    return SliverToBoxAdapter(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = _resolveContentWidth(
-            context,
-            constraints.maxWidth,
-            controller.selectedErrorLogMaxWidthScore.value,
-          );
-          return Scrollbar(
-            controller: detailHorizontalScrollController,
-            interactive: true,
-            thumbVisibility: width > constraints.maxWidth,
-            notificationPredicate: (notification) {
-              return notification.metrics.axis == Axis.horizontal;
-            },
-            child: SingleChildScrollView(
-              controller: detailHorizontalScrollController,
-              scrollDirection: Axis.horizontal,
-              child: _buildSelectableHorizontalLogArea(context, lines, width),
-            ),
+          }
+          return LogCenterLogText(
+            line: lines[index - imageOffset],
+            maxLines: wrapLines ? null : 1,
+            overflow: wrapLines ? TextOverflow.clip : TextOverflow.visible,
+            softWrap: wrapLines,
           );
         },
       ),
